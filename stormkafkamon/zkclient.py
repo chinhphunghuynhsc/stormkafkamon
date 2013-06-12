@@ -6,6 +6,7 @@ from kazoo.exceptions import NoNodeError
 
 ZkKafkaBroker = namedtuple('ZkKafkaBroker', ['id', 'host', 'port'])
 ZkKafkaSpout = namedtuple('ZkKafkaSpout', ['id', 'partitions'])
+ZkKafkaTransaction = namedtuple('ZkKafkaTransaction', ['id', 'txid', 'offset'])
 ZkKafkaTopic = namedtuple('ZkKafkaTopic', ['topic', 'broker', 'num_partitions'])
 
 class ZkError(Exception):
@@ -77,6 +78,24 @@ class ZkClient:
                     if j['topology']['name'] == topology:
                         partitions.append(j)
                 s.append(ZkKafkaSpout._make([c, partitions]))
+        except NoNodeError:
+            raise ZkError('Kafka Spout nodes do not exist in Zookeeper')
+        self.client.stop()
+        return tuple(s)
+
+    def transactions(self, transaction_root, spout):
+        '''
+        Gets data on current transactions.
+        '''
+        s = []
+        self.client.start()
+        try:
+            spout_root = self._zjoin([transaction_root, spout, 'user'])
+            for c in self.client.get_children(spout_root):
+                partitions = []
+                for t in self.client.get_children(self._zjoin([spout_root, c])):
+                    j = json.loads(self.client.get(self._zjoin([spout_root, c, t]))[0])
+                    s.append(ZkKafkaTransaction._make([c, t, j['offset']]))
         except NoNodeError:
             raise ZkError('Kafka Spout nodes do not exist in Zookeeper')
         self.client.stop()
