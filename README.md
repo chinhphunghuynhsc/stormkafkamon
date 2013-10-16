@@ -10,7 +10,7 @@ Requirements:
 After cloning, run `pip install stormkafkamon`, or just
 
 ```
-pip install https://github.com/otoolep/stormkafkamon/zipball/master
+pip install https://github.com/brianantonelli/stormkafkamon/zipball/master
 ```
 
 Workflow:
