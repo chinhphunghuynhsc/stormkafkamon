@@ -40,19 +40,27 @@ def display(summary, friendly=False):
     print 'Total delta:             %s' % fmt(summary.total_delta)
 
 def post_json(endpoint, zk_data):
-    fields = ("broker", "topic", "partition", "earliest", "latest", "depth",
-              "spout", "current", "delta")
-    json_data = {"%s-%s" % (p.broker, p.partition):
-                 {name: getattr(p, name) for name in fields}
-                 for p in zk_data.partitions}
+    fields = ("broker", "topic", "partition", "earliest", "latest", "depth", "spout", "current", "delta")
+    json_data = {}
+    for p in zk_data.partitions:
+        guts = {}
+        for name in fields:
+            guts[name] = getattr(p, name)
+        json_data["%s-%s" % (p.broker, p.partition)] = guts
+
     total_fields = ('depth', 'delta')
-    total = {fieldname:
-             sum(getattr(p, fieldname) for p in zk_data.partitions)
-             for fieldname in total_fields}
-    total['partitions'] = len({p.partition for p in zk_data.partitions})
-    total['brokers'] = len({p.broker for p in zk_data.partitions})
+
+    total = {}
+    for fieldname in total_fields:
+        total[fieldname] = 0
+        for p in zk_data.partitions:
+            total[fieldname] += getattr(p, fieldname)
+    
+    total['partitions'] = zk_data.num_partitions
+    total['brokers'] = zk_data.num_brokers
     json_data['total'] = total
     requests.post(endpoint, data=json.dumps(json_data))
+
 
 ######################################################################
 
@@ -97,7 +105,6 @@ def main():
             post_json(options.postjson, zk_data)
         else:
             display(zk_data, true_or_false_option(options.friendly))
-
     return 0
 
 if __name__ == '__main__':
