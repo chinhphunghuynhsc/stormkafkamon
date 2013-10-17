@@ -5,6 +5,8 @@ import sys
 from prettytable import PrettyTable
 import requests
 import simplejson as json
+import socket
+import time
 
 from zkclient import ZkClient, ZkError
 from processor import process, ProcessorError
@@ -58,9 +60,26 @@ def post_json(endpoint, zk_data):
     
     total['partitions'] = zk_data.num_partitions
     total['brokers'] = zk_data.num_brokers
-    json_data['total'] = total
+    json_data['total'] = total    
+
     requests.post(endpoint, data=json.dumps(json_data))
 
+def send_to_graphite(graphiteserver, graphiteport, zk_data):
+    timestamp = int(time.time())
+    events = []
+    fields = ("earliest", "latest", "depth", "current", "delta")
+    json_data = {}
+    for p in zk_data.partitions:
+        for name in fields:
+            events.append('%s.%s.%s.%s.%s.%s %s %d' % ('stormkafka', p.broker, p.topic, p.partition, p.spout, name, getattr(p, name), timestamp))
+
+    message = '\n'.join(events) + '\n'
+    
+    # print 'sending message: %s\n' % message
+    sock = socket.socket()
+    sock.connect((graphiteserver, graphiteport))
+    sock.sendall(message)
+    sock.close()
 
 ######################################################################
 
@@ -83,6 +102,10 @@ def read_args():
         help='Root path for Kafka Spout data in Zookeeper')
     parser.add_argument('--friendly', action='store_const', const=True,
                     help='Show friendlier data')
+    parser.add_argument('--graphitehost', type=str,
+                    help='Graphite host')
+    parser.add_argument('--graphiteport', type=int, default=2003,
+                    help='Graphite port (default: 2003)')
     parser.add_argument('--postjson', type=str,
                     help='endpoint to post json data to')
     return parser.parse_args()
@@ -103,6 +126,8 @@ def main():
     else:
         if options.postjson:
             post_json(options.postjson, zk_data)
+        elif options.graphitehost and options.graphiteport:
+            send_to_graphite(options.graphitehost, options.graphiteport, zk_data)
         else:
             display(zk_data, true_or_false_option(options.friendly))
     return 0
