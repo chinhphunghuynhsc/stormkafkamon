@@ -69,6 +69,7 @@ class ZkClient:
         '''
         s = []
         self.client.start()
+        spout_root = spout_root + '/user'
         try:
             for c in self.client.get_children(spout_root):
                 partitions = []

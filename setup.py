@@ -8,7 +8,7 @@ install_requires = [
     'simplejson',
     'argparse',
     'requests',
-    'kafka-python'
+    'kafka-python==0.9.0'
 ]
 
 setuptools.setup(

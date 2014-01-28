@@ -67,11 +67,10 @@ def post_json(endpoint, zk_data):
 def send_to_graphite(graphiteserver, graphiteport, zk_data):
     timestamp = int(time.time())
     events = []
-    fields = ("earliest", "latest", "depth", "current", "delta")
+
     json_data = {}
     for p in zk_data.partitions:
-        for name in fields:
-            events.append('%s.%s.%s.%s.%s.%s %s %d' % ('stormkafka', p.broker, p.topic, p.partition, p.spout, name, getattr(p, name), timestamp))
+        events.append('%s.%s.%s.%s.%s %s %d' % ('stormkafka', p.spout, p.topic, p.partition, 'delta', p.delta, timestamp))
 
     message = '\n'.join(events) + '\n'
     
