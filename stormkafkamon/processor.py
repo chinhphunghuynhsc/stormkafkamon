@@ -53,15 +53,15 @@ def process(spouts):
     for s in spouts:
         for p in s.partitions:
             try:
-                k = KafkaClient(p['broker']['host'], p['broker']['port'])
+                k = KafkaClient(p['broker']['host'] + ':' + str(p['broker']['port']))
             except socket.gaierror, e:
                 raise ProcessorError('Failed to contact Kafka broker %s (%s)' %
                                      (p['broker']['host'], str(e)))
             earliest_off = OffsetRequest(p['topic'], p['partition'], -2, 1)
             latest_off = OffsetRequest(p['topic'], p['partition'], -1, 1)
 
-            earliest = k.get_offsets(earliest_off)[0]
-            latest = k.get_offsets(latest_off)[0]
+            earliest = k.get_offsets([earliest_off])[0]
+            latest = k.get_offsets([latest_off])[0]
             current = p['offset']
 
             brokers.append(p['broker']['host'])
