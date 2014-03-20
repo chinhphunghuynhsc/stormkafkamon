@@ -23,7 +23,7 @@ setuptools.setup(
     zip_safe = True,
     verbose = False,
     install_requires = install_requires,
-    dependency_links = ['https://github.com/mumrah/kafka-python/tarball/0.7#egg=kafka-python-0.7.2-0'],
+    dependency_links = ['https://github.com/mumrah/kafka-python/tarball/9599215bf28b65a29908b8644dcaa6f3614a425d#egg=kafka-python'],
     entry_points={
         'console_scripts': [
             'skmon = stormkafkamon.monitor:main'
