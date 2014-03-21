@@ -64,16 +64,20 @@ def main():
     options = read_args()
 
     zc = ZkClient(options.zserver, options.zport)
+    sc.start()
 
     try:
-        display(process(zc.spouts(options.spoutroot, options.topology)),
-                true_or_false_option(options.friendly))
-    except ZkError, e:
-        print 'Failed to access Zookeeper: %s' % str(e)
-        return 1
-    except ProcessorError, e:
-        print 'Failed to process: %s' % str(e)
-        return 1
+        try:
+            display(process(zc.spouts(options.spoutroot, options.topology)),
+                    true_or_false_option(options.friendly))
+        except ZkError, e:
+            print 'Failed to access Zookeeper: %s' % str(e)
+            return 1
+        except ProcessorError, e:
+            print 'Failed to process: %s' % str(e)
+            return 1
+    finally:
+        zc.stop()
 
     return 0
 
