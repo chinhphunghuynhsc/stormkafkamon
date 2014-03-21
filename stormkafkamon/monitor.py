@@ -64,7 +64,7 @@ def main():
     options = read_args()
 
     zc = ZkClient(options.zserver, options.zport)
-    sc.start()
+    zc.start()
 
     try:
         try:
