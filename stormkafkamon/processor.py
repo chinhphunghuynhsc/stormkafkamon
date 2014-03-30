@@ -82,8 +82,9 @@ def process(spouts):
                 s.id,
                 current,
                 latest - current]))
+
     return PartitionsSummary(total_depth=total_depth,
                              total_delta=total_delta,
                              num_partitions=len(results),
                              num_brokers=len(set(brokers)),
-                             partitions=tuple(results))
+                             partitions=tuple(sorted(results, key=lambda x: x.partition)))
