@@ -26,7 +26,8 @@ setuptools.setup(
     dependency_links = ['https://github.com/mumrah/kafka-python/tarball/9599215bf28b65a29908b8644dcaa6f3614a425d#egg=kafka-python'],
     entry_points={
         'console_scripts': [
-            'skmon = stormkafkamon.monitor:main'
+            'skmon = stormkafkamon.monitor:main',
+            'sktop = stormkafkamon.monitor:top'
         ]
     },
 )
