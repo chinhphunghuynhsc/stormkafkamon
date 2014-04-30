@@ -130,6 +130,10 @@ def curses_main(window, args):
             curses_display(window, header_lines, 0, 0)
             curses_display(window, partition_data_lines, 0, len(header_lines) + 1)
             window.refresh()
+        else:
+            print '\r\n'.join(header_lines)
+            print
+            print '\r\n'.join(partition_data_lines)
 
         delta = get_delta(last_update)
         sleep_time = options.update_interval - delta

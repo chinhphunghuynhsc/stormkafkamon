@@ -41,6 +41,7 @@ class PartitionDelta(object):
         self.earliest = None
         self.latest = None
         self.depth = None
+        self.delta = None
 
         self.added = 0
         self.removed = 0
@@ -50,13 +51,14 @@ class PartitionDelta(object):
         if self.latest is not None:
             self.added = partition_data.latest - self.latest
             self.removed = partition_data.current - self.current
-            self.net = partition_data.depth - self.depth
+            self.net = partition_data.delta - self.delta
 
         self.broker = partition_data.broker
         self.latest = partition_data.latest
         self.earliest = partition_data.earliest
         self.depth = partition_data.depth
         self.current = partition_data.current
+        self.delta = partition_data.delta
 
     def get_added(self):
         return self.added
@@ -78,6 +80,9 @@ class PartitionDelta(object):
 
     def get_depth(self):
         return self.depth
+
+    def get_delta(self):
+        return self.delta
 
 
 class SummaryAggregator(object):
@@ -109,7 +114,7 @@ class SummaryAggregator(object):
         self.removed_averages = {}
         self.prev_summary = None
         self.prev_time = None
-        self.delta = None
+        self.seconds_between_updates = None
         self.start_time = None
         self.seconds_running = 0
         self.added = 0
@@ -146,7 +151,7 @@ class SummaryAggregator(object):
             self.total_added += self.added
             self.total_removed += self.removed
             self.summaries_added += 1
-            self.delta = SummaryAggregator.seconds_delta(time, self.prev_time)
+            self.seconds_between_updates = SummaryAggregator.seconds_delta(time, self.prev_time)
 
         self.prev_summary = summary
         self.prev_time = time
@@ -173,12 +178,17 @@ class SummaryAggregator(object):
 
         lines.append("Zookeeper: %s Topology: %s" % (self.zookeeper, self.topology))
         lines.append("")
-        lines.append("Depth %16d Added %12d Removed %12d Net %12d" % (self.prev_summary.total_depth, self.added, self.removed, self.added-self.removed))
 
-        if self.delta is  None or self.delta == 0:
+        lines.append("Total Depth: %18d     Total Delta: %18d" % (self.prev_summary.total_depth, self.prev_summary.total_delta))
+        lines.append("")
+
+        display_delta = self.seconds_between_updates if self.seconds_between_updates != None else 0.0
+        lines.append("Delta Time %10.02fs Added %12d Removed %12d Net %12d" % (display_delta, self.added, self.removed, self.added-self.removed))
+
+        if self.seconds_between_updates is  None or self.seconds_between_updates == 0:
             lines.append("%22s Add/s %12d Rem/s   %12d Net %12d" % ('', 0, 0, 0))
         else:
-            lines.append("%22s Add/s %12d Rem/s   %12d Net %12d" % ('', self.added / self.delta, self.removed / self.delta, (self.added-self.removed)/self.delta))
+            lines.append("%22s Add/s %12d Rem/s   %12d Net %12d" % ('', self.added / self.seconds_between_updates, self.removed / self.seconds_between_updates, (self.added-self.removed)/self.seconds_between_updates))
 
         lines.append("")
         lines.append("            last 30 sec | last minute | last 5 minutes | last 10 minutes")
@@ -199,18 +209,18 @@ class SummaryAggregator(object):
 
     def get_partition_data_lines(self):
         lines = list()
-        lines.append("  #  |   Earliest   |    Current   |    Latest    |     Depth    |     Delta    |    Delta/s   |")
+        lines.append("  #  |   Earliest   |    Current   |    Latest    |     Depth    |     Delta    | Delta Delta/s|")
 
         for i in range(len(self.partitions)):
             partition = self.partitions[i]
-            net_per_second = partition.get_net() / self.delta if self.delta is not None else 0
+            net_per_second = partition.get_net() / self.seconds_between_updates if self.seconds_between_updates is not None else 0
 
             lines.append(" % 3d |% 13d |% 13d |% 13d |% 13d |% 13d |% 13d |" % (i,
                                                                          partition.get_earliest(),
                                                                          partition.get_current(),
                                                                          partition.get_latest(),
                                                                          partition.get_depth(),
-                                                                         partition.get_net(),
+                                                                         partition.get_delta(),
                                                                          net_per_second ))
 
         return lines
