@@ -13,6 +13,7 @@ import struct
 import socket
 from collections import namedtuple
 from kafka.client import KafkaClient
+from kafka.common import KafkaUnavailableError
 from kafka.common import OffsetRequest
 
 class ProcessorError(Exception):
@@ -43,6 +44,20 @@ PartitionsSummary = namedtuple('PartitionsSummary',
         'partitions'        # Tuple of PartitionStates
     ])
 
+
+def unreachable_partition_state(spout, partition):
+    return PartitionState._make([
+        partition['broker']['host'],
+        partition['topic'],
+        partition['partition'],
+        -1,
+        -1,
+        -1,
+        spout.id,
+        -1,
+        -1])
+
+
 def process(spouts):
     '''
     Returns a named tuple of type PartitionsSummary.
@@ -55,6 +70,9 @@ def process(spouts):
         for p in s.partitions:
             try:
                 k = KafkaClient(p['broker']['host'] + ':' + str(p['broker']['port']))
+            except KafkaUnavailableError:
+                results.append(unreachable_partition_state(s, p))
+                continue
             except socket.gaierror, e:
                 raise ProcessorError('Failed to contact Kafka broker %s (%s)' %
                                      (p['broker']['host'], str(e)))
